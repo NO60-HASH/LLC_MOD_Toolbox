@@ -2,6 +2,9 @@
 // 我恨XML，这辈子都不想写XML了。
 // （而且内存占用好多
 
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -332,15 +335,23 @@ namespace LLC_MOD_Toolbox
         {
             try
             {
-                logger.Debug("更改彩蛋图片为： " + url);
-                await this.Dispatcher.BeginInvoke(() =>
+                using (var client = new HttpClient())
                 {
-                    EEPageImage.Source = BitmapFrame.Create(new Uri(url), BitmapCreateOptions.None, BitmapCacheOption.Default);
-                });
+                    var bytes = await client.GetByteArrayAsync(url);
+                    using (var stream = new MemoryStream(bytes))
+                    {
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad; // 立即加载
+                        bitmap.StreamSource = stream;
+                        bitmap.EndInit();
+                        EEPageImage.Source = bitmap;
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // encountered error, ignore it.
+                // 设置默认图片或处理错误
             }
         }
         #endregion
